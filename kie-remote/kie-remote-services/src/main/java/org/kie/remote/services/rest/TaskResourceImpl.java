@@ -176,6 +176,63 @@ public class TaskResourceImpl extends ResourceBase {
         doRestTaskOperationWithTaskId(taskId, cmd);
         return createCorrectVariant(new JaxbGenericResponse(getRequestUri()), headers);
     }
+    
+    //This method is added, so that it can handle the tasks of a particular user, I still logged in as an admin
+    
+    @POST
+    @Path("/{taskId: [0-9-]+}/{oper: [a-zA-Z]+}/{userId: [a-zA-Z]+}")
+    public Response doTaskOperationForUser(@PathParam("taskId") long taskId, @PathParam("oper") String operation, @PathParam("userId") String userId) { 
+        Map<String, String[]> params = getRequestParams();
+        operation = checkThatOperationExists(operation, allowedOperations);
+        String oper = getRelativePath();
+        
+        logger.debug("Executing " + operation + " on task " + taskId + " by user " + userId );
+       
+        TaskCommand<?> cmd = null;
+        
+        if ("activate".equalsIgnoreCase(operation)) {
+            cmd = new ActivateTaskCommand(taskId, userId);
+        } else if ("claim".equalsIgnoreCase(operation)) {
+            cmd = new ClaimTaskCommand(taskId, userId);
+        } else if ("claimnextavailable".equalsIgnoreCase(operation)) {
+            cmd = new ClaimNextAvailableTaskCommand(userId);
+        } else if ("complete".equalsIgnoreCase(operation)) {
+            Map<String, Object> data = extractMapFromParams(params, operation);
+            cmd = new CompleteTaskCommand(taskId, userId, data);
+        } else if ("delegate".equalsIgnoreCase(operation)) {
+            String targetEntityId = getStringParam("targetEntityId", true, params, oper);
+            cmd = new DelegateTaskCommand(taskId, userId, targetEntityId);
+        } else if ("exit".equalsIgnoreCase(operation)) {
+            cmd = new ExitTaskCommand(taskId, userId);
+        } else if ("fail".equalsIgnoreCase(operation)) {
+            Map<String, Object> data = extractMapFromParams(params, oper);
+            cmd = new FailTaskCommand(taskId, userId, data);
+        } else if ("forward".equalsIgnoreCase(operation)) {
+            String targetEntityId = getStringParam("targetEntityId", true, params, oper);
+            cmd = new ForwardTaskCommand(taskId, userId, targetEntityId);
+        } else if ("release".equalsIgnoreCase(operation)) {
+            cmd = new ReleaseTaskCommand(taskId, userId);
+        } else if ("resume".equalsIgnoreCase(operation)) {
+            cmd = new ResumeTaskCommand(taskId, userId);
+        } else if ("skip".equalsIgnoreCase(operation)) {
+            cmd = new SkipTaskCommand(taskId, userId);
+        } else if ("start".equalsIgnoreCase(operation)) {
+            cmd = new StartTaskCommand(taskId, userId);
+        } else if ("stop".equalsIgnoreCase(operation)) {
+            cmd = new StopTaskCommand(taskId, userId);
+        } else if ("suspend".equalsIgnoreCase(operation)) {
+            cmd = new SuspendTaskCommand(taskId, userId);
+        } else if ("nominate".equalsIgnoreCase(operation)) {
+            List<OrganizationalEntity> potentialOwners = getOrganizationalEntityListFromParams(params, true, oper);
+            cmd = new NominateTaskCommand(taskId, userId, potentialOwners);
+        } else {
+            throw KieRemoteRestOperationException.badRequest("Unsupported operation: " + oper);
+        }
+        
+        doRestTaskOperationWithTaskId(taskId, cmd);
+        return createCorrectVariant(new JaxbGenericResponse(getRequestUri()), headers);
+    }
+    
 
     private static String checkThatOperationExists(String operation, String[] possibleOperations) {
         for (String oper : possibleOperations) {

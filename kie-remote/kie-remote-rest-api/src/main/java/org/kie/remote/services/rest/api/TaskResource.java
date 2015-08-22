@@ -61,6 +61,20 @@ public interface TaskResource {
             allowableValues = "activate, claim, claimnextavailable, complete, delegate, exit, fail, forward, nominate, release, resume, skip, start, stop, suspend",
             allowMultiple = false) 
             @PathParam("oper") String operation );
+            
+    @POST
+    @Path("/{taskId: [0-9-]+}/{oper: [a-zA-Z]+}/{userId: [a-zA-Z]+}")
+    @ApiOperation(value = "Get a specific task for a particular user", 
+        notes = "Returns a Task")
+    @ApiResponses(value = { 
+            @ApiResponse(code = 404, message = "Task can not be found for this user") })
+    public Response doTaskOperationForUser( 
+            @PathParam("taskId") long taskId, 
+            @ApiParam(value = "Operation names", required = true, 
+            allowableValues = "activate, claim, claimnextavailable, complete, delegate, exit, fail, forward, nominate, release, resume, skip, start, stop, suspend",
+            allowMultiple = false) 
+            @PathParam("oper") String operation,
+            @PathParam("userId") String userId);   
 
     @GET
     @Path("/{taskId: [0-9-]+}/content")
